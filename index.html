@@ -111,13 +111,19 @@ async function settingsUI(){
  <form id="businessSettingsForm" class="formgrid">
  ${field("name","Business / Company name")}${field("phone","Business phone","tel")}${field("email","Business email","email")}${field("country","Country")}
  <div class="field"><label>Currency</label><select name="currency"><option value="ETB">ETB — Ethiopian Birr</option><option value="SAR">SAR — Saudi Riyal</option><option value="USD">USD — US Dollar</option></select></div>
- ${field("tax_number","Tax / VAT number")}${field("logo_url","Logo URL","url")}
+ ${field("tax_number","Tax / VAT number")}
+ <div class="field wide"><label>Upload Business Logo (PNG, JPG, WEBP)</label><input id="businessLogoFile" type="file" accept="image/png,image/jpeg,image/webp"><div id="logoPreview" style="margin-top:10px"></div><input name="logo_url" type="hidden"></div>
  <div class="field wide"><label>Business address</label><textarea name="address"></textarea></div>
  <div class="wide actions"><button type="submit">Save business information</button></div></form>
- <p class="muted">Company profile data is saved in Supabase and protected by your company access rules.</p></div>`;
+ <p class="muted">Business details and logo are saved in Supabase Cloud.</p></div>`;
  const form=document.getElementById("businessSettingsForm");
  for(const k of ["name","phone","email","country","currency","tax_number","logo_url","address"])if(form.elements[k])form.elements[k].value=b[k]|| (k==="currency"?"ETB":"");
- form.onsubmit=async e=>{e.preventDefault();const values=Object.fromEntries(new FormData(form));const {error:saveError}=await sb.from("businesses").update(values).eq("id",businessId);if(saveError)return showNotice(saveError.message);showNotice("Business information saved successfully.");};
+ const preview=document.getElementById("logoPreview"), fileInput=document.getElementById("businessLogoFile");
+ if(b.logo_url)preview.innerHTML=`<img src="${esc(b.logo_url)}" alt="Business logo" style="max-width:180px;max-height:100px;object-fit:contain;border:1px solid #dbe3ef;border-radius:8px;padding:6px">`;
+ fileInput.onchange=()=>{const file=fileInput.files?.[0];if(!file)return;if(file.size>3*1024*1024){fileInput.value="";return showNotice("Logo must be 3 MB or smaller.");}const url=URL.createObjectURL(file);preview.innerHTML=`<img src="${url}" alt="Logo preview" style="max-width:180px;max-height:100px;object-fit:contain;border:1px solid #dbe3ef;border-radius:8px;padding:6px">`;};
+ form.onsubmit=async e=>{e.preventDefault();const values=Object.fromEntries(new FormData(form));const file=fileInput.files?.[0];
+ if(file){const ext=(file.name.split(".").pop()||"png").toLowerCase().replace(/[^a-z0-9]/g,"");const path=`${businessId}/logo-${Date.now()}.${ext}`;const {error:uploadError}=await sb.storage.from("business-logos").upload(path,file,{upsert:true,contentType:file.type});if(uploadError)return showNotice("Logo upload failed: "+uploadError.message);const {data:publicData}=sb.storage.from("business-logos").getPublicUrl(path);values.logo_url=publicData.publicUrl;}
+ const {error:saveError}=await sb.from("businesses").update(values).eq("id",businessId);if(saveError)return showNotice(saveError.message);showNotice("Business information and logo saved successfully.");};
 }
 function usersUI(){genericUI("Users & Roles")}
 function companiesUI(){module.innerHTML=`<div class="panel"><h2>Multiple Companies</h2><p>Signed-in user company access is shown here. Each company’s records are isolated by business_id and RLS.</p><button id="loadCompanies">Load my companies</button><div id="companyRows" class="tablewrap"></div></div>`;loadCompanies.onclick=async()=>{const {data,error}=await sb.from("business_members").select("business_id,role,businesses(name)").eq("user_id",currentUser.id);if(error)return showNotice(error.message);companyRows.innerHTML=(data||[]).map(x=>`<p>${esc(x.businesses?.name)} — ${esc(x.business_id)} — ${esc(x.role)}</p>`).join("")}}
