@@ -108,9 +108,11 @@ const dict={
 om:{"Dashboard":"Cuunfaa","New Cargo Booking":"Fe’ii Haaraa Galchi","Cargo / Shipment List":"Tarree Fe’ii","Cargo Tracking":"Hordoffii Fe’ii","Branches / Depots":"Damee / Kuusaa","Routes (City to City)":"Daandii Magaalaa irraa gara Magaalaa","Customers":"Maamiltoota","Trucks / Vehicles":"Konkolaataa","Drivers":"Ooftoota","Trips / Dispatch":"Imala / Ergaa","Payments":"Kaffaltii","Expenses":"Baasiilee","Reports":"Gabaasa","Users & Roles":"Fayyadamtoota & Gahee","Business Settings":"Qindaa’ina Dhaabbataa","Multiple Companies":"Dhaabbilee Hedduu","Sign in":"Seeni","Sign out":"Ba’i"},
 en:{},am:{"Dashboard":"ዳሽቦርድ","New Cargo Booking":"አዲስ ጭነት መመዝገብ","Cargo / Shipment List":"የጭነት ዝርዝር","Cargo Tracking":"ጭነት መከታተያ","Branches / Depots":"ቅርንጫፎች / መጋዘኖች","Routes (City to City)":"መንገዶች","Customers":"ደንበኞች","Trucks / Vehicles":"ተሽከርካሪዎች","Drivers":"ሾፌሮች","Trips / Dispatch":"ጉዞ / ማስ dispatch","Payments":"ክፍያዎች","Expenses":"ወጪዎች","Reports":"ሪፖርቶች","Users & Roles":"ተጠቃሚዎች እና ሚናዎች","Business Settings":"የድርጅት ቅንብሮች","Multiple Companies":"ብዙ ድርጅቶች"}};
 function tr(s){return dict[document.getElementById("lang").value]?.[s]||s}
+const savedLanguage=localStorage.getItem("wizo_cargo_language");
+if(savedLanguage && ["om","en","am"].includes(savedLanguage))document.getElementById("lang").value=savedLanguage;
 function showNotice(s){const n=document.getElementById("notice");n.textContent=s;n.classList.remove("hidden")}
 function clearNotice(){document.getElementById("notice").classList.add("hidden")}
-document.getElementById("lang").onchange=()=>{buildMenu();document.getElementById("pageTitle").textContent=tr(currentModule)};
+document.getElementById("lang").onchange=()=>{localStorage.setItem("wizo_cargo_language",document.getElementById("lang").value);buildMenu();document.getElementById("pageTitle").textContent=tr(currentModule)};
 document.getElementById("signIn").onclick=async()=>{const {data,error}=await sb.auth.signInWithPassword({email:authEmail.value.trim(),password:authPassword.value});if(error)return alert(error.message);await loadSession(data.user)};
 document.getElementById("createAccount").onclick=async()=>{let email=authEmail.value.trim(),password=authPassword.value,bname=businessName.value.trim();if(!email||password.length<6||!bname)return alert("Enter email, password (at least 6 characters), and company name.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{business_name:bname}}});if(error)return alert(error.message);if(!data.user)return alert("Check your email.");if(data.session)await loadSession(data.user);else alert("Account created. Confirm your email, then sign in. Company setup is completed after confirmation.")};
 document.getElementById("signOut").onclick=async()=>{await sb.auth.signOut();location.reload()};
@@ -167,7 +169,15 @@ function showShipmentModal(r,mode){
    control=`<select name="${key}">${opts.map(v=>`<option value="${v}" ${String(value(key)|| (key==="payment_status"?"unpaid":"booked"))===v?"selected":""}>${v}</option>`).join("")}</select>`;
   } else control=`<input name="${key}" type="${type}" ${type==="number"?'min="0" step="0.01"':""} value="${esc(value(key))}">`;
   return `<div class="field ${key==="cargo_description"?"wide":""}"><label>${label}</label>${control}</div>`;
- }).join("") : Object.entries(r).map(([k,v])=>`<div class="shipment-detail-item"><small>${esc(k.replaceAll("_"," "))}</small><b>${esc(v??"—")}</b></div>`).join("");
+ }).join("") : [
+   ["tracking_number","Tracking Number"],
+   ["sender_name","Sender"],["sender_phone","Sender Phone"],
+   ["receiver_name","Receiver"],["receiver_phone","Receiver Phone"],
+   ["origin_city","Origin"],["destination_city","Destination"],
+   ["weight_kg","Weight"],["cargo_description","Cargo"],
+   ["total_price","Price"],["payment_status","Payment"],
+   ["shipment_status","Status"],["created_at","Date"]
+  ].map(([key,label])=>`<div class="shipment-detail-item"><small>${label}</small><b>${esc(key==="created_at"?(r[key]||"—").toString().replace("T"," ").slice(0,16):key==="weight_kg"?(r[key]??"—")+" kg":key==="total_price"?(r[key]??"—")+" "+(r.currency||"ETB"):(r[key]??"—"))}</b></div>`).join("");
  const overlay=document.createElement("div");
  overlay.id="shipmentModal";overlay.className="shipment-modal-backdrop";
  overlay.innerHTML=`<section class="shipment-modal" role="dialog" aria-modal="true">
