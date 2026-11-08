@@ -39,6 +39,11 @@ main{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll
  main{flex:1 1 auto;width:100%;overflow-y:auto}
 }
 
+
+.cargo-dashboard{max-width:1500px;margin:18px auto}.welcome-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.welcome-row h2{font-size:23px;margin:0 0 4px}.welcome-row p{margin:0}.date-chip{background:#fff;border:1px solid var(--line);padding:11px 15px;border-radius:10px;font-weight:650}
+.dash-metrics{grid-template-columns:repeat(4,minmax(0,1fr));margin:18px 0}.metric-card{display:flex;align-items:center;gap:14px;padding:17px;border-radius:13px;color:white;min-height:90px;box-shadow:0 5px 14px #15385c12}.metric-card>div:last-child{flex:1}.metric-card strong{display:block;font-size:27px;line-height:1.3}.metric-card small{float:right;margin-top:-27px;background:#ffffff30;padding:4px 7px;border-radius:15px}.metric-icon{display:grid;place-items:center;width:45px;height:45px;background:#ffffff30;border-radius:12px;font-size:23px}.metric-card.blue{background:linear-gradient(120deg,#2789f2,#075bd4)}.metric-card.green{background:linear-gradient(120deg,#2ac477,#07934f)}.metric-card.orange{background:linear-gradient(120deg,#ffb322,#e88b00)}.metric-card.red{background:linear-gradient(120deg,#ff6572,#e92e46)}
+.dash-columns{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.2fr) minmax(220px,.8fr);gap:14px;margin-bottom:14px}.dash-columns .panel,.bottom-dash .panel{min-width:0}.trend-chart{height:210px;display:flex;align-items:end;justify-content:space-around;gap:8px;padding:18px 6px 4px;border-bottom:1px solid var(--line)}.trend-col{display:flex;flex-direction:column;align-items:center;justify-content:end;height:100%;flex:1;gap:7px}.trend-bar{width:min(42px,75%);min-height:3px;background:linear-gradient(#49a0ff,#0866d9);border-radius:6px 6px 0 0}.trend-col span{font-size:11px;color:#63748a}.status-layout{display:flex;align-items:center;justify-content:center;gap:20px;min-height:210px}.status-donut{width:150px;height:150px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(#16a34a 0deg,#16a34a 0deg,#1675df 0deg,#1675df 0deg,#f59e0b 0deg,#f59e0b 360deg);position:relative;flex-shrink:0}.status-donut:before{content:"";position:absolute;inset:23px;background:white;border-radius:50%}.status-donut>div{position:relative;display:flex;flex-direction:column;align-items:center}.status-donut strong{font-size:26px}.status-donut span{font-size:12px}.status-legend{display:grid;gap:13px;min-width:125px}.status-legend>div{display:flex;align-items:center;gap:7px;font-size:12px}.status-legend b{margin-left:auto}.dot{width:10px;height:10px;border-radius:3px;display:inline-block}.green-dot{background:#16a34a}.blue-dot{background:#1675df}.orange-dot{background:#f59e0b}.quick-panel button{display:block;width:100%;margin:0 0 8px;text-align:left}.quick-primary{background:#0866d9}.quick-secondary{background:#eaf2fc;color:#143c6a}.bottom-dash{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,.9fr);gap:14px}.summary-line{display:flex;justify-content:space-between;gap:10px;padding:12px 3px;border-bottom:1px solid var(--line)}.summary-line.profit{color:#14823e;background:#effaf3;padding:12px;border-radius:8px;margin-top:8px}.recent-panel td{white-space:nowrap}.recent-panel .pill{font-size:11px}
+@media(max-width:1100px){.dash-columns{grid-template-columns:1fr 1fr}.quick-panel{grid-column:1/-1}.quick-panel button{display:inline-block;width:auto}}@media(max-width:700px){.dash-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.dash-columns,.bottom-dash{grid-template-columns:1fr}.quick-panel{grid-column:auto}.status-layout{gap:12px}.status-donut{width:125px;height:125px}}@media(max-width:440px){.metric-card{padding:11px;gap:8px}.metric-icon{width:35px;height:35px}.metric-card strong{font-size:22px}.status-layout{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -55,14 +60,23 @@ main{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll
 <aside id="menu"></aside>
 <main><div class="topline"><div><h1 id="pageTitle">Dashboard</h1><div class="muted" id="businessInfo"></div></div><button class="secondary" id="refresh">Refresh</button></div>
 <div id="notice" class="notice hidden"></div>
-<section id="dashboard">
-<div class="cards">
-<div class="card"><div class="muted">Total Shipments</div><div class="metric" id="metricTotal">0</div></div>
-<div class="card"><div class="muted">In Transit</div><div class="metric" id="metricTransit">0</div></div>
-<div class="card"><div class="muted">Delivered</div><div class="metric" id="metricDelivered">0</div></div>
-<div class="card"><div class="muted">Recorded Payments</div><div class="metric" id="metricPayments">0</div></div>
-</div><div class="panel"><h2>Recent Shipments</h2><div class="tablewrap"><table><thead><tr><th>Tracking</th><th>Route</th><th>Status</th><th>Price</th></tr></thead><tbody id="recentRows"></tbody></table></div></div>
-</section>
+<section id="dashboard" class="cargo-dashboard">
+<div class="welcome-row"><div><h2>Welcome to WIZO LAND CARGO 👋</h2><p class="muted">Here is your cargo and business overview</p></div><div class="date-chip">📅 <span id="dashDate">Today</span></div></div>
+<div class="cards dash-metrics">
+<div class="metric-card blue"><div class="metric-icon">📦</div><div><div>Total Shipments</div><strong id="metricTotal">0</strong></div></div>
+<div class="metric-card green"><div class="metric-icon">✓</div><div><div>Delivered</div><strong id="metricDelivered">0</strong><small id="deliveredPct">0%</small></div></div>
+<div class="metric-card orange"><div class="metric-icon">🚚</div><div><div>In Transit</div><strong id="metricTransit">0</strong><small id="transitPct">0%</small></div></div>
+<div class="metric-card red"><div class="metric-icon">◷</div><div><div>Pending</div><strong id="metricPending">0</strong><small id="pendingPct">0%</small></div></div>
+</div>
+<div class="dash-columns">
+<div class="panel"><h2>📊 Shipments Trend</h2><div id="trendChart" class="trend-chart"><div class="muted">Shipment activity will appear here</div></div></div>
+<div class="panel"><h2>🚚 Shipment Status</h2><div class="status-layout"><div id="statusDonut" class="status-donut"><div><strong id="donutTotal">0</strong><span>Total</span></div></div><div class="status-legend"><div><i class="dot green-dot"></i>Delivered <b id="legendDelivered">0</b></div><div><i class="dot blue-dot"></i>In Transit <b id="legendTransit">0</b></div><div><i class="dot orange-dot"></i>Pending <b id="legendPending">0</b></div></div></div></div>
+<div class="panel quick-panel"><h2>⚡ Quick Actions</h2><button class="quick-primary" onclick="openModule('New Cargo Booking')">＋ New Cargo Booking</button><button class="quick-secondary" onclick="openModule('Cargo Tracking')">⌖ Track Shipment</button><button class="quick-secondary" onclick="openModule('Cargo / Shipment List')">▣ Cargo / Shipment List</button><button class="quick-secondary" onclick="openModule('Payments')">▤ Record Payment</button><button class="quick-secondary" onclick="openModule('Reports')">▥ View Reports</button></div>
+</div>
+<div class="bottom-dash">
+<div class="panel recent-panel"><h2>📦 Recent Shipments</h2><div class="tablewrap"><table><thead><tr><th>Tracking No.</th><th>Route</th><th>Status</th><th>Date</th><th>Price</th></tr></thead><tbody id="recentRows"></tbody></table></div></div>
+<div class="panel summary-panel"><h2>📅 Today's Summary</h2><div class="summary-line"><span>📦 New Bookings</span><b id="todayBookings">0</b></div><div class="summary-line"><span>🚚 Deliveries</span><b id="todayDeliveries">0</b></div><div class="summary-line"><span>▤ Payments</span><b id="metricPayments">0 ETB</b></div><div class="summary-line"><span>💸 Expenses</span><b id="dashExpenses">0 ETB</b></div><div class="summary-line profit"><span>▥ Net Summary</span><b id="dashNet">0 ETB</b></div></div>
+</div></section>
 <section id="module" class="hidden"></section>
 </main></div>
 <script>
@@ -93,7 +107,27 @@ async function ensureBusiness(){
  else showNotice("Account login succeeded, but company setup could not be loaded. Run the complete SQL file in Supabase and refresh. "+(error?.message||""));
 }
 function buildMenu(){const m=document.getElementById("menu");m.innerHTML="";modules.forEach(x=>{let b=document.createElement("button");b.textContent=tr(x);b.className=x===currentModule?"active":"";b.onclick=()=>openModule(x);m.appendChild(b)})}
-async function loadDashboard(){if(!businessId)return;const {data,error}=await sb.from("shipments").select("id,tracking_number,origin_city,destination_city,shipment_status,total_price").eq("business_id",businessId).order("created_at",{ascending:false}).limit(8);if(error){showNotice(error.message);return}const rows=data||[];metricTotal.textContent=rows.length;metricTransit.textContent=rows.filter(x=>x.shipment_status==="in_transit").length;metricDelivered.textContent=rows.filter(x=>x.shipment_status==="delivered").length;const p=await sb.from("payments").select("amount").eq("business_id",businessId);metricPayments.textContent=(p.data||[]).reduce((a,x)=>a+Number(x.amount||0),0).toLocaleString();recentRows.innerHTML=rows.map(x=>`<tr><td>${esc(x.tracking_number)}</td><td>${esc(x.origin_city)} → ${esc(x.destination_city)}</td><td><span class="pill">${esc(x.shipment_status)}</span></td><td>${Number(x.total_price||0).toLocaleString()} ETB</td></tr>`).join("")}
+async function loadDashboard(){
+if(!businessId)return;
+const {data,error}=await sb.from("shipments").select("id,tracking_number,origin_city,destination_city,shipment_status,total_price,created_at").eq("business_id",businessId).order("created_at",{ascending:false}).limit(500);
+if(error){showNotice(error.message);return}
+const rows=data||[], total=rows.length, delivered=rows.filter(x=>x.shipment_status==="delivered").length, transit=rows.filter(x=>x.shipment_status==="in_transit").length, pending=rows.filter(x=>!["delivered","in_transit","cancelled"].includes(x.shipment_status)).length;
+const pct=n=>total?Math.round(n/total*100):0;
+metricTotal.textContent=total;metricDelivered.textContent=delivered;metricTransit.textContent=transit;metricPending.textContent=pending;
+deliveredPct.textContent=pct(delivered)+"%";transitPct.textContent=pct(transit)+"%";pendingPct.textContent=pct(pending)+"%";
+donutTotal.textContent=total;legendDelivered.textContent=delivered;legendTransit.textContent=transit;legendPending.textContent=pending;
+const d1=total?delivered/total*360:0,d2=total?transit/total*360:0;
+statusDonut.style.background=`conic-gradient(#16a34a 0deg ${d1}deg,#1675df ${d1}deg ${d1+d2}deg,#f59e0b ${d1+d2}deg 360deg)`;
+dashDate.textContent=new Date().toLocaleDateString();
+const days=[];for(let i=6;i>=0;i--){const date=new Date();date.setDate(date.getDate()-i);const key=date.toISOString().slice(0,10);days.push({key,label:date.toLocaleDateString(undefined,{month:"short",day:"numeric"}),count:rows.filter(x=>(x.created_at||"").slice(0,10)===key).length})}
+const max=Math.max(1,...days.map(x=>x.count));
+trendChart.innerHTML=days.map(x=>`<div class="trend-col"><div class="trend-bar" title="${x.count} shipments" style="height:${Math.max(3,x.count/max*82)}%"></div><span>${esc(x.label)}</span></div>`).join("");
+const today=new Date().toISOString().slice(0,10), todayRows=rows.filter(x=>(x.created_at||"").slice(0,10)===today);
+todayBookings.textContent=todayRows.length;todayDeliveries.textContent=todayRows.filter(x=>x.shipment_status==="delivered").length;
+const p=await sb.from("payments").select("amount").eq("business_id",businessId);const paymentTotal=(p.data||[]).reduce((a,x)=>a+Number(x.amount||0),0);metricPayments.textContent=paymentTotal.toLocaleString()+" ETB";
+const ex=await sb.from("expenses").select("amount").eq("business_id",businessId);const expenseTotal=(ex.data||[]).reduce((a,x)=>a+Number(x.amount||0),0);dashExpenses.textContent=expenseTotal.toLocaleString()+" ETB";dashNet.textContent=(paymentTotal-expenseTotal).toLocaleString()+" ETB";
+recentRows.innerHTML=rows.slice(0,8).map(x=>`<tr><td>${esc(x.tracking_number)}</td><td>${esc(x.origin_city)} → ${esc(x.destination_city)}</td><td><span class="pill">${esc(x.shipment_status)}</span></td><td>${esc((x.created_at||"").slice(0,10))}</td><td>${Number(x.total_price||0).toLocaleString()} ETB</td></tr>`).join("");
+}
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function openModule(name){currentModule=name;buildMenu();document.getElementById("pageTitle").textContent=tr(name);dashboard.classList.toggle("hidden",name!=="Dashboard");module.classList.toggle("hidden",name==="Dashboard");if(name==="Dashboard"){loadDashboard();return}if(name==="New Cargo Booking"){bookingUI();return}if(name==="Cargo Tracking"){trackingUI();return}if(name==="Reports"){reportsUI();return}if(name==="Business Settings"){settingsUI();return}if(name==="Users & Roles"){usersUI();return}if(name==="Multiple Companies"){companiesUI();return}genericUI(name)}
 function bookingUI(){module.innerHTML=`<div class="panel"><h2>${tr("New Cargo Booking")}</h2><form id="bookingForm" class="formgrid">
