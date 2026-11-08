@@ -108,11 +108,9 @@ const dict={
 om:{"Dashboard":"Cuunfaa","New Cargo Booking":"Fe’ii Haaraa Galchi","Cargo / Shipment List":"Tarree Fe’ii","Cargo Tracking":"Hordoffii Fe’ii","Branches / Depots":"Damee / Kuusaa","Routes (City to City)":"Daandii Magaalaa irraa gara Magaalaa","Customers":"Maamiltoota","Trucks / Vehicles":"Konkolaataa","Drivers":"Ooftoota","Trips / Dispatch":"Imala / Ergaa","Payments":"Kaffaltii","Expenses":"Baasiilee","Reports":"Gabaasa","Users & Roles":"Fayyadamtoota & Gahee","Business Settings":"Qindaa’ina Dhaabbataa","Multiple Companies":"Dhaabbilee Hedduu","Sign in":"Seeni","Sign out":"Ba’i"},
 en:{},am:{"Dashboard":"ዳሽቦርድ","New Cargo Booking":"አዲስ ጭነት መመዝገብ","Cargo / Shipment List":"የጭነት ዝርዝር","Cargo Tracking":"ጭነት መከታተያ","Branches / Depots":"ቅርንጫፎች / መጋዘኖች","Routes (City to City)":"መንገዶች","Customers":"ደንበኞች","Trucks / Vehicles":"ተሽከርካሪዎች","Drivers":"ሾፌሮች","Trips / Dispatch":"ጉዞ / ማስ dispatch","Payments":"ክፍያዎች","Expenses":"ወጪዎች","Reports":"ሪፖርቶች","Users & Roles":"ተጠቃሚዎች እና ሚናዎች","Business Settings":"የድርጅት ቅንብሮች","Multiple Companies":"ብዙ ድርጅቶች"}};
 function tr(s){return dict[document.getElementById("lang").value]?.[s]||s}
-const savedLanguage=localStorage.getItem("wizo_cargo_language");
-if(savedLanguage && ["om","en","am"].includes(savedLanguage))document.getElementById("lang").value=savedLanguage;
 function showNotice(s){const n=document.getElementById("notice");n.textContent=s;n.classList.remove("hidden")}
 function clearNotice(){document.getElementById("notice").classList.add("hidden")}
-document.getElementById("lang").onchange=()=>{localStorage.setItem("wizo_cargo_language",document.getElementById("lang").value);buildMenu();document.getElementById("pageTitle").textContent=tr(currentModule)};
+document.getElementById("lang").onchange=()=>{buildMenu();document.getElementById("pageTitle").textContent=tr(currentModule)};
 document.getElementById("signIn").onclick=async()=>{const {data,error}=await sb.auth.signInWithPassword({email:authEmail.value.trim(),password:authPassword.value});if(error)return alert(error.message);await loadSession(data.user)};
 document.getElementById("createAccount").onclick=async()=>{let email=authEmail.value.trim(),password=authPassword.value,bname=businessName.value.trim();if(!email||password.length<6||!bname)return alert("Enter email, password (at least 6 characters), and company name.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{business_name:bname}}});if(error)return alert(error.message);if(!data.user)return alert("Check your email.");if(data.session)await loadSession(data.user);else alert("Account created. Confirm your email, then sign in. Company setup is completed after confirmation.")};
 document.getElementById("signOut").onclick=async()=>{await sb.auth.signOut();location.reload()};
@@ -169,15 +167,7 @@ function showShipmentModal(r,mode){
    control=`<select name="${key}">${opts.map(v=>`<option value="${v}" ${String(value(key)|| (key==="payment_status"?"unpaid":"booked"))===v?"selected":""}>${v}</option>`).join("")}</select>`;
   } else control=`<input name="${key}" type="${type}" ${type==="number"?'min="0" step="0.01"':""} value="${esc(value(key))}">`;
   return `<div class="field ${key==="cargo_description"?"wide":""}"><label>${label}</label>${control}</div>`;
- }).join("") : [
-   ["tracking_number","Tracking Number"],
-   ["sender_name","Sender"],["sender_phone","Sender Phone"],
-   ["receiver_name","Receiver"],["receiver_phone","Receiver Phone"],
-   ["origin_city","Origin"],["destination_city","Destination"],
-   ["weight_kg","Weight"],["cargo_description","Cargo"],
-   ["total_price","Price"],["payment_status","Payment"],
-   ["shipment_status","Status"],["created_at","Date"]
-  ].map(([key,label])=>`<div class="shipment-detail-item"><small>${label}</small><b>${esc(key==="created_at"?(r[key]||"—").toString().replace("T"," ").slice(0,16):key==="weight_kg"?(r[key]??"—")+" kg":key==="total_price"?(r[key]??"—")+" "+(r.currency||"ETB"):(r[key]??"—"))}</b></div>`).join("");
+ }).join("") : Object.entries(r).map(([k,v])=>`<div class="shipment-detail-item"><small>${esc(k.replaceAll("_"," "))}</small><b>${esc(v??"—")}</b></div>`).join("");
  const overlay=document.createElement("div");
  overlay.id="shipmentModal";overlay.className="shipment-modal-backdrop";
  overlay.innerHTML=`<section class="shipment-modal" role="dialog" aria-modal="true">
@@ -203,7 +193,7 @@ function showShipmentModal(r,mode){
 }
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function openModule(name){currentModule=name;buildMenu();document.getElementById("pageTitle").textContent=tr(name);dashboard.classList.toggle("hidden",name!=="Dashboard");module.classList.toggle("hidden",name==="Dashboard");if(name==="Dashboard"){loadDashboard();return}if(name==="New Cargo Booking"){bookingUI();return}if(name==="Cargo / Shipment List"){cargoListUI();return}if(name==="Cargo Tracking"){trackingUI();return}if(name==="Reports"){reportsUI();return}if(name==="Business Settings"){settingsUI();return}if(name==="Users & Roles"){usersUI();return}if(name==="Multiple Companies"){companiesUI();return}genericUI(name)}
+function openModule(name){currentModule=name;buildMenu();document.getElementById("pageTitle").textContent=tr(name);dashboard.classList.toggle("hidden",name!=="Dashboard");module.classList.toggle("hidden",name==="Dashboard");if(name==="Dashboard"){loadDashboard();return}if(name==="New Cargo Booking"){bookingUI();return}if(name==="Cargo / Shipment List"){cargoListUI();return}if(name==="Cargo Tracking"){trackingUI();return}if(name==="Reports"){reportsUI();return}if(name==="Business Settings"){settingsUI();return}if(name==="Users & Roles"){usersUI();return}if(name==="Drivers"){driversUI();return}if(name==="Trips / Dispatch"){dispatchUI();return}if(name==="Multiple Companies"){companiesUI();return}genericUI(name)}
 
 async function cargoListUI(){
  module.innerHTML=`<div class="panel cargo-list-panel">
@@ -248,6 +238,39 @@ ${field("sender_name","Sender name")}${field("sender_phone","Sender phone","tel"
 <div class="wide actions"><button>Save booking</button></div></form></div>`;bookingForm.onsubmit=async e=>{e.preventDefault();const f=Object.fromEntries(new FormData(e.target));f.business_id=businessId;f.shipment_status="booked";f.tracking_number="WZ-"+Date.now().toString().slice(-8);f.weight_kg=Number(f.weight_kg);f.total_price=Number(f.total_price);const {data,error}=await sb.from("shipments").insert(f).select().single();if(error)return showNotice(error.message);alert("Booking saved. Tracking number: "+data.tracking_number);openModule("Dashboard")}}
 function field(id,label,type="text",wide=false){return `<div class="field ${wide?"wide":""}"><label>${label}</label><input name="${id}" id="${id}" type="${type}" ${type==="number"?'min="0" step="0.01"':""} required></div>`}
 function trackingUI(){module.innerHTML=`<div class="panel"><h2>Cargo Tracking</h2><div class="field"><label>Tracking number</label><input id="trackNumber" placeholder="WZ-..."></div><button id="trackBtn">Track</button><div id="trackResult" style="margin-top:14px"></div></div>`;trackBtn.onclick=async()=>{let {data,error}=await sb.from("shipments").select("tracking_number,origin_city,destination_city,shipment_status,created_at").eq("business_id",businessId).eq("tracking_number",trackNumber.value.trim()).maybeSingle();trackResult.innerHTML=error?esc(error.message):data?`<div class="notice"><b>${esc(data.tracking_number)}</b><br>${esc(data.origin_city)} → ${esc(data.destination_city)}<br>Status: ${esc(data.shipment_status)}</div>`:"No shipment found."}}
+
+async function driversUI(){
+ module.innerHTML=`<div class="panel">
+ <div class="cargo-list-head"><div><h2>Drivers</h2><p class="muted">Create driver profiles and manage availability.</p></div><button id="driverAdd">＋ Add Driver</button></div>
+ <div id="driverNotice" class="notice">Driver records are company-scoped.</div>
+ <div class="tablewrap"><table><thead><tr><th>Driver</th><th>Phone</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead><tbody id="driverRows"></tbody></table></div>
+ </div>`;
+ async function load(){let q=await sb.from("drivers").select("*").eq("business_id",businessId).order("created_at",{ascending:false});if(q.error){driverNotice.textContent="Could not load drivers: "+q.error.message;return}driverRows.innerHTML=(q.data||[]).map(d=>`<tr><td>${esc(d.full_name||d.name||"—")}</td><td>${esc(d.phone||"—")}</td><td>${esc(d.email||"—")}</td><td>${esc(d.status|| (d.active===false?"Inactive":"Active"))}</td><td><button data-driver-edit="${d.id}">Edit</button> <button class="danger" data-driver-delete="${d.id}">Delete</button></td></tr>`).join("")||`<tr><td colspan="5">No driver records yet.</td></tr>`}
+ driverAdd.onclick=async()=>{let name=prompt("Driver full name");if(!name)return;let phone=prompt("Driver phone number");if(!phone)return;let email=prompt("Driver email (optional)")||null;let q=await sb.from("drivers").insert({business_id:businessId,full_name:name,phone,email,status:"active"});if(q.error){showNotice("Driver creation failed: "+q.error.message);return}load()};
+ driverRows.onclick=async e=>{let b=e.target.closest("button");if(!b)return;let id=b.dataset.driverEdit||b.dataset.driverDelete;let d=(await sb.from("drivers").select("*").eq("id",id).eq("business_id",businessId).maybeSingle()).data;if(!d)return;
+ if(b.dataset.driverEdit){let name=prompt("Driver full name",d.full_name||d.name||"");if(name===null)return;let phone=prompt("Phone",d.phone||"");if(phone===null)return;let status=prompt("Status (active/inactive)",d.status||"active");if(!status)return;let u=await sb.from("drivers").update({full_name:name,phone,status}).eq("id",id).eq("business_id",businessId);if(u.error)showNotice(u.error.message);else load()}
+ else if(confirm("Delete this driver profile?")){let u=await sb.from("drivers").delete().eq("id",id).eq("business_id",businessId);if(u.error)showNotice(u.error.message);else load()}
+ };
+ await load();
+}
+async function dispatchUI(){
+ module.innerHTML=`<div class="panel"><h2>Trips / Dispatch</h2><p class="muted">Assign a shipment to a driver. Driver profile must exist first.</p>
+ <div class="field"><label>Shipment</label><select id="dispatchShipment"></select></div>
+ <div class="field"><label>Driver</label><select id="dispatchDriver"></select></div>
+ <button id="dispatchAssign">Assign Driver</button><div id="dispatchMsg" class="notice" style="margin-top:12px"></div>
+ <h3>Assignments</h3><button class="secondary" id="dispatchRefresh">Refresh</button>
+ <div class="tablewrap"><table><thead><tr><th>Tracking</th><th>Driver</th><th>Status</th><th>Assigned</th></tr></thead><tbody id="dispatchRows"></tbody></table></div></div>`;
+ const [sh,dr]=await Promise.all([sb.from("shipments").select("id,tracking_number,sender_name,receiver_name").eq("business_id",businessId).order("created_at",{ascending:false}),sb.from("drivers").select("id,full_name,phone").eq("business_id",businessId).eq("status","active")]);
+ if(sh.error||dr.error){dispatchMsg.textContent=sh.error?.message||dr.error?.message;return}
+ dispatchShipment.innerHTML=(sh.data||[]).map(x=>`<option value="${x.id}">${esc(x.tracking_number||"Shipment")} — ${esc(x.receiver_name||"")}</option>`).join("");
+ dispatchDriver.innerHTML=(dr.data||[]).map(x=>`<option value="${x.id}">${esc(x.full_name)} (${esc(x.phone||"")})</option>`).join("");
+ dispatchAssign.onclick=async()=>{if(!dispatchShipment.value||!dispatchDriver.value){dispatchMsg.textContent="Select shipment and driver.";return}
+ const q=await sb.from("driver_assignments").insert({business_id:businessId,shipment_id:dispatchShipment.value,driver_id:dispatchDriver.value,assignment_status:"assigned"});
+ if(q.error){dispatchMsg.textContent="Assignment failed: "+q.error.message;return}dispatchMsg.textContent="Driver assigned.";await refresh()};
+ async function refresh(){let q=await sb.from("driver_assignments").select("id,shipment_id,driver_id,assignment_status,created_at").eq("business_id",businessId).order("created_at",{ascending:false});if(q.error){dispatchMsg.textContent=q.error.message;return}let shipments=Object.fromEntries((sh.data||[]).map(x=>[x.id,x.tracking_number]));let drivers=Object.fromEntries((dr.data||[]).map(x=>[x.id,x.full_name]));dispatchRows.innerHTML=(q.data||[]).map(x=>`<tr><td>${esc(shipments[x.shipment_id]||x.shipment_id)}</td><td>${esc(drivers[x.driver_id]||x.driver_id)}</td><td>${esc(x.assignment_status)}</td><td>${esc((x.created_at||"").slice(0,16).replace("T"," "))}</td></tr>`).join("")||`<tr><td colspan="4">No assignments yet.</td></tr>`}
+ dispatchRefresh.onclick=refresh;await refresh();
+}
+
 function genericUI(name){const table=moduleTables[name];module.innerHTML=`<div class="panel"><h2>${tr(name)}</h2><div class="notice">Company-scoped records. This screen currently supports loading records; create/edit workflows for this module are being completed.</div><button id="loadRows">Load records</button><div class="tablewrap" style="margin-top:12px"><table><thead><tr id="th"></tr></thead><tbody id="tb"></tbody></table></div></div>`;loadRows.onclick=async()=>{const {data,error}=await sb.from(table).select("*").eq("business_id",businessId).limit(100);if(error)return showNotice(error.message);let cols=data?.length?Object.keys(data[0]):["No records"];th.innerHTML=cols.map(c=>`<th>${esc(c)}</th>`).join("");tb.innerHTML=(data||[]).map(r=>`<tr>${cols.map(c=>`<td>${esc(r[c])}</td>`).join("")}</tr>`).join("")}}
 function reportsUI(){module.innerHTML=`<div class="panel"><h2>Reports</h2><p>Summary of shipments and recorded payments for this company.</p><button id="reportLoad">Generate summary</button><div id="reportOut" class="cards"></div></div>`;reportLoad.onclick=async()=>{let s=await sb.from("shipments").select("shipment_status,total_price").eq("business_id",businessId);let pay=await sb.from("payments").select("amount").eq("business_id",businessId);if(s.error||pay.error)return showNotice(s.error?.message||pay.error?.message);reportOut.innerHTML=`<div class="card">Shipments <div class="metric">${s.data.length}</div></div><div class="card">Shipment value <div class="metric">${s.data.reduce((a,x)=>a+Number(x.total_price||0),0).toLocaleString()} ETB</div></div><div class="card">Payments <div class="metric">${pay.data.reduce((a,x)=>a+Number(x.amount||0),0).toLocaleString()} ETB</div></div>`}}
 async function settingsUI(){
