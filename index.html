@@ -115,7 +115,26 @@ document.getElementById("signIn").onclick=async()=>{const {data,error}=await sb.
 document.getElementById("createAccount").onclick=async()=>{let email=authEmail.value.trim(),password=authPassword.value,bname=businessName.value.trim();if(!email||password.length<6||!bname)return alert("Enter email, password (at least 6 characters), and company name.");const {data,error}=await sb.auth.signUp({email,password,options:{data:{business_name:bname}}});if(error)return alert(error.message);if(!data.user)return alert("Check your email.");if(data.session)await loadSession(data.user);else alert("Account created. Confirm your email, then sign in. Company setup is completed after confirmation.")};
 document.getElementById("signOut").onclick=async()=>{await sb.auth.signOut();location.reload()};
 sb.auth.onAuthStateChange((_event,session)=>{if(session?.user)loadSession(session.user)});
-async function loadSession(user){currentUser=user;document.getElementById("authView").classList.add("hidden");document.getElementById("appView").classList.remove("hidden");document.getElementById("signOut").classList.remove("hidden");document.getElementById("userLabel").textContent=user.email;await ensureBusiness();buildMenu();await loadDashboard()}
+async function loadSession(user){
+ currentUser=user;
+ document.getElementById("authView").classList.add("hidden");
+ document.getElementById("signOut").classList.remove("hidden");
+ document.getElementById("userLabel").textContent=user.email||"";
+ // Driver accounts are linked to a driver profile by auth_user_id. RLS limits this lookup to the signed-in driver.
+ const driverLookup=await sb.from("drivers").select("id,business_id,full_name,phone,status").eq("auth_user_id",user.id).maybeSingle();
+ if(!driverLookup.error && driverLookup.data){
+  const d=driverLookup.data;
+  if(String(d.status||"active").toLowerCase()!=="active"){document.getElementById("authView").classList.remove("hidden");document.getElementById("driverView").classList.add("hidden");document.getElementById("authMessage").textContent="Driver account is inactive. Please contact your company owner.";return}
+  document.getElementById("appView").classList.add("hidden");
+  document.getElementById("driverView").classList.remove("hidden");
+  document.getElementById("driverWelcome").textContent=(d.full_name||"Driver")+" — assigned cargo only";
+  await loadDriverCargo(d.id);
+  return;
+ }
+ document.getElementById("driverView").classList.add("hidden");
+ document.getElementById("appView").classList.remove("hidden");
+ await ensureBusiness();buildMenu();await loadDashboard();
+}
 async function ensureBusiness(){
  // company creation runs only through secure RPC configured in schema; do not expose service-role keys.
  let {data,error}=await sb.rpc("wizo_setup_my_company",{company_name:currentUser.user_metadata?.business_name||"My Cargo Company"});
@@ -193,6 +212,53 @@ function showShipmentModal(r,mode){
 }
 
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+let activeDriverId=null;
+async function loadDriverCargo(driverId){
+ activeDriverId=driverId;
+ const note=document.getElementById("driverNotice"), cards=document.getElementById("driverCargoCards");
+ note.textContent="Loading your assigned cargo…";cards.innerHTML="";
+ // Fetch only this driver's assignments; database RLS is the actual access boundary.
+ const q=await sb.from("driver_assignments").select("id,assignment_status,created_at,shipment_id,shipment:shipments(id,tracking_number,sender_name,sender_phone,receiver_name,receiver_phone,origin_city,destination_city,weight_kg,cargo_description,shipment_status)").eq("driver_id",driverId).order("created_at",{ascending:false});
+ if(q.error){note.textContent="Could not load assigned cargo: "+q.error.message;return}
+ const rows=q.data||[];
+ note.textContent=rows.length?`${rows.length} assigned shipment(s). Customer OTP is required before marking delivered.`:"No cargo assigned yet.";
+ cards.innerHTML=rows.map(a=>{
+  const s=a.shipment||{};
+  const status=a.assignment_status||s.shipment_status||"assigned";
+  return `<article class="panel" data-driver-assignment="${esc(a.id)}" style="margin:0">
+   <div class="welcome-row"><h2 style="margin:0">${esc(s.tracking_number||"Shipment")}</h2><span class="pill">${esc(status)}</span></div>
+   <p><b>Route:</b> ${esc(s.origin_city||"—")} → ${esc(s.destination_city||"—")}</p>
+   <p><b>Receiver:</b> ${esc(s.receiver_name||"—")} ${s.receiver_phone?`(${esc(s.receiver_phone)})`:""}</p>
+   <p><b>Cargo:</b> ${esc(s.cargo_description||"—")} · ${Number(s.weight_kg||0).toLocaleString()} kg</p>
+   <div class="actions">
+    ${status==="assigned"?`<button data-driver-action="accept" data-id="${esc(a.id)}">Accept</button>`:""}
+    ${["assigned","accepted"].includes(status)?`<button class="secondary" data-driver-action="pickup" data-id="${esc(a.id)}">Picked up</button>`:""}
+    ${["accepted","picked_up"].includes(status)?`<button data-driver-action="transit" data-id="${esc(a.id)}">In transit</button>`:""}
+    ${!["delivered","cancelled"].includes(status)?`<button class="secondary" data-driver-action="otp" data-id="${esc(a.id)}">Send delivery OTP</button><button data-driver-action="verify" data-id="${esc(a.id)}">Verify OTP & Deliver</button>`:""}
+   </div>
+   <div class="field hidden" id="otpBox-${esc(a.id)}" style="margin-top:10px"><label>Customer OTP</label><input id="otpInput-${esc(a.id)}" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Enter code customer received"></div>
+  </article>`;
+ }).join("");
+ cards.onclick=async ev=>{
+  const b=ev.target.closest("button[data-driver-action]");if(!b)return;
+  const action=b.dataset.driverAction, assignmentId=b.dataset.id;
+  if(action==="verify")document.getElementById("otpBox-"+assignmentId)?.classList.remove("hidden");
+  let body={assignment_id:assignmentId};
+  let fn="";
+  if(action==="accept"){fn="driver-update-assignment-status";body.status="accepted"}
+  if(action==="pickup"){fn="driver-update-assignment-status";body.status="picked_up"}
+  if(action==="transit"){fn="driver-update-assignment-status";body.status="in_transit"}
+  if(action==="otp")fn="driver-send-delivery-otp";
+  if(action==="verify"){fn="driver-verify-delivery-otp";body.otp=document.getElementById("otpInput-"+assignmentId)?.value.trim();if(!body.otp){note.textContent="Enter the customer OTP first.";return}}
+  b.disabled=true;note.textContent="Processing securely…";
+  const result=await sb.functions.invoke(fn,{body});
+  b.disabled=false;
+  if(result.error){note.textContent=`${action} failed: `+(result.error.message||"Edge Function error");return}
+  note.textContent=result.data?.message|| (action==="otp"?"OTP request sent to customer.":action==="verify"?"OTP verified; delivery confirmed.":"Assignment status updated.");
+  await loadDriverCargo(driverId);
+ };
+}
+document.getElementById("driverRefresh").onclick=()=>{if(activeDriverId)loadDriverCargo(activeDriverId)};
 function openModule(name){currentModule=name;buildMenu();document.getElementById("pageTitle").textContent=tr(name);dashboard.classList.toggle("hidden",name!=="Dashboard");module.classList.toggle("hidden",name==="Dashboard");if(name==="Dashboard"){loadDashboard();return}if(name==="New Cargo Booking"){bookingUI();return}if(name==="Cargo / Shipment List"){cargoListUI();return}if(name==="Cargo Tracking"){trackingUI();return}if(name==="Reports"){reportsUI();return}if(name==="Business Settings"){settingsUI();return}if(name==="Users & Roles"){usersUI();return}if(name==="Drivers"){driversUI();return}if(name==="Trips / Dispatch"){dispatchUI();return}if(name==="Multiple Companies"){companiesUI();return}genericUI(name)}
 
 async function cargoListUI(){
