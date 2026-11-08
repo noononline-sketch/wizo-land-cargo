@@ -47,6 +47,22 @@ main{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;scroll
 
 .cargo-list-head{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}.cargo-list-head h2{margin:0 0 5px}.cargo-list-head p{margin:0}.cargo-filters{display:grid;grid-template-columns:minmax(230px,2fr) repeat(2,minmax(160px,1fr)) minmax(150px,1fr);gap:10px;margin:20px 0 12px}.cargo-filters input,.cargo-filters select{min-width:0;padding:10px;border:1px solid var(--line);border-radius:8px;background:white;color:#24364b}.cargo-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0}.cargo-toolbar button{margin-left:7px}.cargo-table-wrap{overflow:auto}.cargo-table{min-width:1160px}.cargo-table td small{display:block;color:#738196;margin-top:3px}.cargo-actions{display:flex;gap:5px;flex-wrap:wrap}.cargo-actions button,.tiny{font-size:11px;padding:5px 7px;border-radius:6px}.cargo-actions .danger{background:#fee2e2;color:#b91c1c}.cargo-status{display:inline-block;background:#eaf2ff;color:#1758a6;border-radius:15px;padding:4px 8px;font-size:11px}.empty{text-align:center;padding:28px;color:#718096}.cargo-list-panel{padding:20px}@media(max-width:800px){.cargo-filters{grid-template-columns:1fr 1fr}.cargo-list-head{align-items:flex-start}}@media(max-width:500px){.cargo-filters{grid-template-columns:1fr}.cargo-toolbar{align-items:flex-start;flex-direction:column}}
 </style>
+
+<style>
+.shipment-modal-backdrop{position:fixed;inset:0;background:rgba(10,27,49,.58);z-index:9999;display:flex;align-items:center;justify-content:center;padding:18px}
+.shipment-modal{width:min(760px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;box-shadow:0 20px 70px #071a3380;padding:22px}
+.shipment-modal-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e1e8f1;padding-bottom:12px;margin-bottom:16px}
+.shipment-modal-head h2{margin:0;color:#12365c}.shipment-modal-close{background:#e8f0fb;color:#12365c;font-size:20px;padding:5px 12px}
+.shipment-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.shipment-modal-grid .field{margin:0}.shipment-modal-grid label{font-size:12px}
+.shipment-modal-grid input,.shipment-modal-grid textarea,.shipment-modal-grid select{width:100%;padding:10px;border:1px solid #d4deea;border-radius:8px}
+.shipment-modal-grid textarea{min-height:80px}.shipment-modal-foot{display:flex;justify-content:flex-end;gap:9px;margin-top:18px}
+.shipment-detail{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shipment-detail-item{padding:10px 12px;background:#f6f9fd;border:1px solid #e1e8f1;border-radius:9px;overflow-wrap:anywhere}
+.shipment-detail-item small{display:block;color:#708198;margin-bottom:4px}
+@media(max-width:560px){.shipment-modal-grid,.shipment-detail{grid-template-columns:1fr}.shipment-modal{padding:15px}}
+</style>
+
 </head>
 <body>
 <header><div class="brand">🚚 WIZO <span>LAND CARGO</span></div><div style="display:flex;gap:9px;align-items:center"><select id="lang" aria-label="Language"><option value="om">Afaan Oromoo</option><option value="en">English</option><option value="am">አማርኛ</option></select><span id="userLabel" class="muted"></span><button id="signOut" class="secondary hidden">Sign out</button></div></header>
@@ -130,6 +146,52 @@ const p=await sb.from("payments").select("amount").eq("business_id",businessId);
 const ex=await sb.from("expenses").select("amount").eq("business_id",businessId);const expenseTotal=(ex.data||[]).reduce((a,x)=>a+Number(x.amount||0),0);dashExpenses.textContent=expenseTotal.toLocaleString()+" ETB";dashNet.textContent=(paymentTotal-expenseTotal).toLocaleString()+" ETB";
 recentRows.innerHTML=rows.slice(0,8).map(x=>`<tr><td>${esc(x.tracking_number)}</td><td>${esc(x.origin_city)} → ${esc(x.destination_city)}</td><td><span class="pill">${esc(x.shipment_status)}</span></td><td>${esc((x.created_at||"").slice(0,10))}</td><td>${Number(x.total_price||0).toLocaleString()} ETB</td></tr>`).join("");
 }
+
+function closeShipmentModal(){document.getElementById("shipmentModal")?.remove()}
+function showShipmentModal(r,mode){
+ const isEdit=mode==="edit";
+ const fields=[
+  ["sender_name","Sender name","text"],["sender_phone","Sender phone","tel"],
+  ["receiver_name","Receiver name","text"],["receiver_phone","Receiver phone","tel"],
+  ["origin_city","Origin city","text"],["destination_city","Destination city","text"],
+  ["weight_kg","Weight (kg)","number"],["total_price","Total price","number"],
+  ["cargo_description","Cargo description","textarea"],["payment_status","Payment status","select"],
+  ["shipment_status","Shipment status","select"]
+ ];
+ const value=(k)=>r[k]??"";
+ const content=isEdit?fields.map(([key,label,type])=>{
+  let control="";
+  if(type==="textarea")control=`<textarea name="${key}">${esc(value(key))}</textarea>`;
+  else if(type==="select"){
+   const opts=key==="payment_status"?["unpaid","partial","paid"]:["booked","pending","in_transit","delivered","cancelled"];
+   control=`<select name="${key}">${opts.map(v=>`<option value="${v}" ${String(value(key)|| (key==="payment_status"?"unpaid":"booked"))===v?"selected":""}>${v}</option>`).join("")}</select>`;
+  } else control=`<input name="${key}" type="${type}" ${type==="number"?'min="0" step="0.01"':""} value="${esc(value(key))}">`;
+  return `<div class="field ${key==="cargo_description"?"wide":""}"><label>${label}</label>${control}</div>`;
+ }).join("") : Object.entries(r).map(([k,v])=>`<div class="shipment-detail-item"><small>${esc(k.replaceAll("_"," "))}</small><b>${esc(v??"—")}</b></div>`).join("");
+ const overlay=document.createElement("div");
+ overlay.id="shipmentModal";overlay.className="shipment-modal-backdrop";
+ overlay.innerHTML=`<section class="shipment-modal" role="dialog" aria-modal="true">
+  <div class="shipment-modal-head"><h2>${isEdit?"Edit Shipment":"Shipment Details"}</h2><button type="button" class="shipment-modal-close" id="shipmentModalX">×</button></div>
+  ${isEdit?`<form id="shipmentEditForm"><div class="shipment-modal-grid">${content}</div><div class="shipment-modal-foot"><button type="button" class="secondary" id="shipmentCancel">Cancel</button><button type="submit">Save Changes</button></div></form>`:`<div class="shipment-detail">${content}</div><div class="shipment-modal-foot"><button type="button" class="secondary" id="shipmentClose">Close</button><button type="button" id="shipmentEditFromView">Edit Shipment</button></div>`}
+ </section>`;
+ document.body.appendChild(overlay);
+ overlay.addEventListener("click",e=>{if(e.target===overlay)closeShipmentModal()});
+ document.getElementById("shipmentModalX").onclick=closeShipmentModal;
+ if(!isEdit){
+  document.getElementById("shipmentClose").onclick=closeShipmentModal;
+  document.getElementById("shipmentEditFromView").onclick=()=>{closeShipmentModal();showShipmentModal(r,"edit")};
+ }else{
+  document.getElementById("shipmentCancel").onclick=closeShipmentModal;
+  document.getElementById("shipmentEditForm").onsubmit=async e=>{
+   e.preventDefault();const form=e.currentTarget;const values=Object.fromEntries(new FormData(form));
+   values.weight_kg=Number(values.weight_kg||0);values.total_price=Number(values.total_price||0);
+   const {error}=await sb.from("shipments").update(values).eq("id",r.id).eq("business_id",businessId);
+   if(error){showNotice("Shipment update failed: "+error.message);return}
+   Object.assign(r,values);closeShipmentModal();filtered();showNotice("Shipment updated successfully.");
+  };
+ }
+}
+
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function openModule(name){currentModule=name;buildMenu();document.getElementById("pageTitle").textContent=tr(name);dashboard.classList.toggle("hidden",name!=="Dashboard");module.classList.toggle("hidden",name==="Dashboard");if(name==="Dashboard"){loadDashboard();return}if(name==="New Cargo Booking"){bookingUI();return}if(name==="Cargo / Shipment List"){cargoListUI();return}if(name==="Cargo Tracking"){trackingUI();return}if(name==="Reports"){reportsUI();return}if(name==="Business Settings"){settingsUI();return}if(name==="Users & Roles"){usersUI();return}if(name==="Multiple Companies"){companiesUI();return}genericUI(name)}
 
@@ -155,8 +217,8 @@ async function cargoListUI(){
  cargoNew.onclick=()=>openModule("New Cargo Booking");
  cargoRows.onclick=async e=>{let b=e.target.closest("button[data-act]");if(!b)return;let r=shown.find(x=>String(x.id)===b.dataset.id);if(!r)return;let act=b.dataset.act;
  if(act==="copy"){try{await navigator.clipboard.writeText(r.tracking_number||"");alert("Tracking number copied")}catch{prompt("Copy tracking number",r.tracking_number)}}
- if(act==="view"){alert(Object.entries(r).map(([k,v])=>`${k.replaceAll("_"," ")}: ${v??""}`).join("\\n"))}
- if(act==="edit"){let sender=prompt("Sender name",r.sender_name||"");if(sender===null)return;let receiver=prompt("Receiver name",r.receiver_name||"");if(receiver===null)return;let origin=prompt("Origin city",r.origin_city||"");if(origin===null)return;let destination=prompt("Destination city",r.destination_city||"");if(destination===null)return;let weight=prompt("Weight (kg)",r.weight_kg||0);if(weight===null)return;let price=prompt("Total price",r.total_price||0);if(price===null)return;let u=await sb.from("shipments").update({sender_name:sender,receiver_name:receiver,origin_city:origin,destination_city:destination,weight_kg:Number(weight),total_price:Number(price)}).eq("id",r.id).eq("business_id",businessId);if(u.error)return showNotice(u.error.message);r.sender_name=sender;r.receiver_name=receiver;r.origin_city=origin;r.destination_city=destination;r.weight_kg=Number(weight);r.total_price=Number(price);filtered();}
+  if(act==="view"){showShipmentModal(r,"view")}
+  if(act==="edit"){showShipmentModal(r,"edit")}
  if(act==="status"){let status=prompt("Enter status: booked, pending, in_transit, delivered, cancelled",r.shipment_status||"booked");if(!status)return;status=status.toLowerCase().replaceAll(" ","_");if(!["booked","pending","in_transit","delivered","cancelled"].includes(status))return alert("Invalid status");let u=await sb.from("shipments").update({shipment_status:status}).eq("id",r.id).eq("business_id",businessId);if(u.error)return showNotice(u.error.message);r.shipment_status=status;filtered();}
  if(act==="payment"){let amount=prompt("Payment amount",r.total_price||0);if(amount===null)return;let method=prompt("Payment method (cash/card/transfer)", "cash");if(!method)return;let u=await sb.from("payments").insert({business_id:businessId,shipment_id:r.id,amount:Number(amount),payment_method:method,paid_at:new Date().toISOString()});if(u.error)return showNotice("Payment could not be recorded: "+u.error.message);let remain=Math.max(0,Number(r.total_price||0)-Number(amount));let upd=await sb.from("shipments").update({payment_status:remain===0?"paid":"partial"}).eq("id",r.id).eq("business_id",businessId);if(upd.error)return showNotice(upd.error.message);r.payment_status=remain===0?"paid":"partial";filtered();alert("Payment recorded");}
  if(act==="receipt"){let w=window.open("","_blank");if(!w)return;w.document.write(`<html><head><title>Cargo Receipt</title><style>body{font:14px Arial;padding:28px}h1{color:#075bd4}table{width:100%;border-collapse:collapse}td{padding:9px;border-bottom:1px solid #ddd}
