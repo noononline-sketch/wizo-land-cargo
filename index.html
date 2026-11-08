@@ -4,21 +4,21 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>WIZO LAND CARGO</title>
 <style>
-:root{--blue:#155eef;--navy:#102a56;--bg:#f4f7fb;--line:#e3eaf4;--muted:#64748b}
+:root{--blue:#155eef;--navy:#102a56;--bg:#f4f7fb;--line:#e3eaf4;--muted:#64748b;--red:#b42318}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);font:15px system-ui,-apple-system,Segoe UI,Arial;color:#172b4d}
-header{background:white;border-bottom:1px solid var(--line);padding:15px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-.brand{font-weight:800;color:var(--navy);font-size:20px}.brand span{color:var(--blue)}
-select,input,button{font:inherit;border:1px solid #d6dfeb;border-radius:9px;padding:10px;background:white}
-button{background:var(--blue);color:white;border:0;font-weight:650;cursor:pointer}button.secondary{background:white;color:var(--navy);border:1px solid var(--line)}
-main{max-width:1150px;margin:24px auto;padding:0 16px}.notice{padding:12px 15px;background:#eaf2ff;border:1px solid #cfe0ff;border-radius:12px;color:#214a90;margin-bottom:16px}
-.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card,.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:17px}
+header{background:#fff;border-bottom:1px solid var(--line);padding:15px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:850;color:var(--navy);font-size:20px}.brand span{color:var(--blue)}
+select,input,button{font:inherit;border:1px solid #d6dfeb;border-radius:9px;padding:10px;background:#fff}
+button{background:var(--blue);color:#fff;border:0;font-weight:650;cursor:pointer}button.secondary{background:#fff;color:var(--navy);border:1px solid var(--line)}button.danger{background:var(--red)}
+main{max-width:1180px;margin:24px auto;padding:0 16px}.notice{padding:12px 15px;background:#eaf2ff;border:1px solid #cfe0ff;border-radius:12px;color:#214a90;margin-bottom:16px}
+.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.card,.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:17px}
 .metric{font-size:25px;font-weight:800;margin-top:7px}.muted{color:var(--muted);font-size:13px}
 .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:14px;margin-top:15px}
 h2{font-size:17px;margin:0 0 14px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.formgrid label{font-size:12px;color:var(--muted);display:block}.formgrid input,.formgrid select{width:100%;margin-top:5px}
 .full{grid-column:1/-1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:10px;border-bottom:1px solid var(--line)}th{color:var(--muted)}
 .scroll{overflow:auto}.status{padding:4px 8px;border-radius:20px;background:#eaf2ff;color:#2254a6;white-space:nowrap}
-#message{margin-top:10px;font-size:13px;color:var(--muted)}
+#message{margin-top:10px;font-size:13px;color:var(--muted)}.hidden{display:none!important}.auth{max-width:520px;margin:36px auto}.auth .formgrid{grid-template-columns:1fr}.subtle{font-size:12px;color:var(--muted)}.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 @media(max-width:760px){.cards{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}.full{grid-column:auto}}
 </style>
 </head>
@@ -26,102 +26,112 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 <header>
  <div class="brand">🚚 WIZO <span>LAND CARGO</span></div>
  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-  <select id="language" aria-label="Language"><option value="en">English</option><option value="om">Afaan Oromoo</option><option value="am">አማርኛ</option></select>
-  <button class="secondary" id="loginBtn">Sign in</button>
+  <select id="language" aria-label="Language"><option value="om">Afaan Oromoo</option><option value="en">English</option><option value="am">አማርኛ</option></select>
+  <span id="userLabel" class="subtle"></span><button class="secondary" id="loginBtn">Sign in</button><button class="secondary hidden" id="logoutBtn">Sign out</button>
  </div>
 </header>
 <main>
- <div class="notice" id="setupNotice">Supabase connection is not configured. Add your Project URL and anon/publishable key in this file before using live data.</div>
- <section class="cards">
-  <div class="card"><div class="muted" data-i18n="cargoTotal">Total Shipments</div><div class="metric" id="total">—</div></div>
-  <div class="card"><div class="muted" data-i18n="inTransit">In Transit</div><div class="metric" id="transit">—</div></div>
-  <div class="card"><div class="muted" data-i18n="delivered">Delivered</div><div class="metric" id="delivered">—</div></div>
-  <div class="card"><div class="muted" data-i18n="revenue">Recorded Payments</div><div class="metric" id="revenue">ETB —</div></div>
+ <div id="notice" class="notice">Connect to your WIZO LAND CARGO account to begin.</div>
+ <section id="authPanel" class="panel auth">
+  <h2 id="authTitle">Sign in / Create account</h2>
+  <form id="authForm" class="formgrid">
+   <div><label>Email</label><input id="email" type="email" autocomplete="email" required></div>
+   <div><label>Password</label><input id="password" type="password" minlength="8" autocomplete="current-password" required></div>
+   <div class="actions"><button id="authSubmit" type="submit">Sign in</button><button id="signupBtn" class="secondary" type="button">Create account</button></div>
+  </form>
+  <p class="subtle">Create an account first. Confirm your email if Supabase asks you to.</p>
+  <div id="authMessage"></div>
  </section>
- <section class="grid">
-  <div class="panel">
-   <h2 data-i18n="newBooking">New Cargo Booking</h2>
-   <form id="bookingForm" class="formgrid">
-    <div><label data-i18n="sender">Sender name</label><input id="sender" required></div>
-    <div><label data-i18n="senderPhone">Sender phone</label><input id="senderPhone" required></div>
-    <div><label data-i18n="receiver">Receiver name</label><input id="receiver" required></div>
-    <div><label data-i18n="receiverPhone">Receiver phone</label><input id="receiverPhone" required></div>
-    <div><label data-i18n="from">Origin city</label><input id="origin" required></div>
-    <div><label data-i18n="to">Destination city</label><input id="destination" required></div>
-    <div><label data-i18n="weight">Weight (KG)</label><input id="weight" type="number" min="0.001" step="0.001" required></div>
-    <div><label data-i18n="price">Price (ETB)</label><input id="price" type="number" min="0" step="0.01" required></div>
-    <div class="full"><label data-i18n="description">Cargo description</label><input id="description"></div>
-    <div class="full actions"><button type="submit" data-i18n="saveBooking">Save booking</button><button type="button" class="secondary" id="refreshBtn" data-i18n="refresh">Refresh</button></div>
-   </form><div id="message"></div>
-  </div>
-  <div class="panel">
-   <h2 data-i18n="tracking">Track Cargo</h2>
-   <form id="trackForm" class="formgrid">
-    <div class="full"><label data-i18n="trackingNo">Tracking number</label><input id="trackingNo" placeholder="WZ-... " required></div>
-    <div class="full actions"><button type="submit" data-i18n="track">Track</button></div>
-   </form>
-   <div id="trackingResult" style="margin-top:12px"></div>
-   <hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
-   <h2 data-i18n="recent">Recent Shipments</h2><div class="scroll"><table><thead><tr><th>Tracking</th><th>Destination</th><th>Status</th></tr></thead><tbody id="shipments"></tbody></table></div>
-  </div>
+ <section id="businessPanel" class="panel auth hidden">
+  <h2>Create your cargo company</h2>
+  <form id="businessForm" class="formgrid">
+   <div><label>Business / company name</label><input id="businessName" required></div>
+   <div><label>Phone</label><input id="businessPhone"></div>
+   <div><label>Address</label><input id="businessAddress"></div>
+   <div class="actions"><button type="submit">Create company and continue</button></div>
+  </form><div id="businessMessage"></div>
+ </section>
+ <section id="appPanel" class="hidden">
+  <div class="topline"><div><b id="companyName">Company</b><div class="subtle" id="businessIdLabel"></div></div><button class="secondary" id="refreshBtn">Refresh dashboard</button></div>
+  <section class="cards">
+   <div class="card"><div class="muted">Total Shipments</div><div class="metric" id="total">0</div></div>
+   <div class="card"><div class="muted">In Transit</div><div class="metric" id="transit">0</div></div>
+   <div class="card"><div class="muted">Delivered</div><div class="metric" id="delivered">0</div></div>
+   <div class="card"><div class="muted">Recorded Payments (ETB)</div><div class="metric" id="revenue">0</div></div>
+  </section>
+  <section class="grid">
+   <div class="panel">
+    <h2>New Cargo Booking</h2>
+    <form id="bookingForm" class="formgrid">
+     <div><label>Sender name</label><input id="sender" required></div><div><label>Sender phone</label><input id="senderPhone" required></div>
+     <div><label>Receiver name</label><input id="receiver" required></div><div><label>Receiver phone</label><input id="receiverPhone" required></div>
+     <div><label>Origin city</label><input id="origin" required></div><div><label>Destination city</label><input id="destination" required></div>
+     <div><label>Weight (KG)</label><input id="weight" type="number" min="0.001" step="0.001" required></div><div><label>Price (ETB)</label><input id="price" type="number" min="0" step="0.01" required></div>
+     <div class="full"><label>Cargo description</label><input id="description"></div>
+     <div class="full actions"><button type="submit">Save booking</button></div>
+    </form><div id="message"></div>
+   </div>
+   <div class="panel">
+    <h2>Track Cargo</h2><form id="trackForm" class="formgrid"><div class="full"><label>Tracking number</label><input id="trackingNo" placeholder="WZ-..." required></div><div class="full actions"><button type="submit">Track</button></div></form>
+    <div id="trackingResult"></div><hr style="border:0;border-top:1px solid var(--line);margin:18px 0">
+    <h2>Recent Shipments</h2><div class="scroll"><table><thead><tr><th>Tracking</th><th>Route</th><th>Status</th><th>Price</th></tr></thead><tbody id="shipments"></tbody></table></div>
+   </div>
+  </section>
  </section>
 </main>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-// Fill these from Supabase Dashboard → Project Settings → API.
-const SUPABASE_URL = 'https://bfzfvbvnjuqxsekdzpee.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_oGJclDQShzuvjXmcoU5ftA_EAwP_i_3';
-const BUSINESS_ID = 'YOUR_BUSINESS_UUID'; // Set after creating your business + membership.
-
-const configured = SUPABASE_URL.startsWith('https://') &&
-  !SUPABASE_URL.includes('YOUR_') && !SUPABASE_ANON_KEY.includes('YOUR_');
-const supabase = configured ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
-const $ = id => document.getElementById(id);
-const translations = {
- en:{cargoTotal:'Total Shipments',inTransit:'In Transit',delivered:'Delivered',revenue:'Recorded Payments',newBooking:'New Cargo Booking',sender:'Sender name',senderPhone:'Sender phone',receiver:'Receiver name',receiverPhone:'Receiver phone',from:'Origin city',to:'Destination city',weight:'Weight (KG)',price:'Price (ETB)',description:'Cargo description',saveBooking:'Save booking',refresh:'Refresh',tracking:'Track Cargo',trackingNo:'Tracking number',track:'Track',recent:'Recent Shipments',signin:'Sign in'},
- om:{cargoTotal:'Baay’ina Cargo',inTransit:'Karaa irra jira',delivered:'Geessame',revenue:'Kaffaltii galmaa’e',newBooking:'Cargo Haaraa Galmeessi',sender:'Maqaa ergaa',senderPhone:'Bilbila ergaa',receiver:'Maqaa fudhataa',receiverPhone:'Bilbila fudhataa',from:'Magaalaa ka’umsaa',to:'Magaalaa itti geessu',weight:'Ulfaatina (KG)',price:'Gatii (ETB)',description:'Ibsa cargo',saveBooking:'Booking olkaa’i',refresh:'Haaromsi',tracking:'Cargo Hordofi',trackingNo:'Lakkoofsa tracking',track:'Hordofi',recent:'Cargo Dhiheenya',signin:'Seeni'},
- am:{cargoTotal:'ጠቅላላ ጭነቶች',inTransit:'በመጓጓዝ ላይ',delivered:'ደርሷል',revenue:'የተመዘገቡ ክፍያዎች',newBooking:'አዲስ ጭነት መመዝገብ',sender:'የላኪ ስም',senderPhone:'የላኪ ስልክ',receiver:'የተቀባይ ስም',receiverPhone:'የተቀባይ ስልክ',from:'መነሻ ከተማ',to:'መድረሻ ከተማ',weight:'ክብደት (KG)',price:'ዋጋ (ETB)',description:'የጭነት መግለጫ',saveBooking:'መዝግብ',refresh:'አድስ',tracking:'ጭነት መከታተያ',trackingNo:'የመከታተያ ቁጥር',track:'ፈልግ',recent:'የቅርብ ጭነቶች',signin:'ግባ'}
+const SUPABASE_URL='https://bfzfvbvnjuqxsekdzpee.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_oGJclDQShzuvjXmcoU5ftA_EAwP_i_3';
+const supabase=createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+const $=id=>document.getElementById(id);
+let currentUser=null,currentBusiness=null,signupMode=false;
+function note(id,msg,isError=false){$(id).textContent=msg;$(id).style.color=isError?'#b42318':''}
+function show(id,yes){$(id).classList.toggle('hidden',!yes)}
+function trackingCode(){return 'WZ-'+Date.now().toString().slice(-8)+'-'+crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0,4).toUpperCase()}
+function setAuthMode(signup){signupMode=signup;$('authTitle').textContent=signup?'Create WIZO account':'Sign in to WIZO';$('authSubmit').textContent=signup?'Create account':'Sign in';$('signupBtn').textContent=signup?'Use sign in':'Create account';}
+$('signupBtn').onclick=()=>setAuthMode(!signupMode);
+$('loginBtn').onclick=()=>{show('authPanel',true);$('email').focus()};
+$('authForm').onsubmit=async e=>{e.preventDefault();note('authMessage','Working…');const email=$('email').value.trim(),password=$('password').value;
+ let result=signupMode?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});
+ if(result.error){note('authMessage',result.error.message,true);return}
+ if(signupMode&&!result.data.session){note('authMessage','Account created. Check your email to confirm, then sign in.');return}
+ await initialize();
 };
-function setLanguage(lang){document.documentElement.lang=lang;document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;el.textContent=translations[lang][key]||translations.en[key]});$('loginBtn').textContent=translations[lang].signin}
-$('language').addEventListener('change',e=>setLanguage(e.target.value));
-$('loginBtn').onclick=async()=>{if(!supabase){alert('Configure Supabase URL and key first.');return}const email=prompt('Email');const password=prompt('Password');if(!email||!password)return;const {error}=await supabase.auth.signInWithPassword({email,password});if(error)alert(error.message);else{ $('setupNotice').textContent='Signed in. Business data is protected by Supabase RLS.';await refreshData()}};
-function message(text){$('message').textContent=text}
-function makeTracking(){return 'WZ-'+Date.now().toString().slice(-8)+'-'+Math.random().toString(36).slice(2,5).toUpperCase()}
-async function refreshData(){
- if(!supabase||!BUSINESS_ID||BUSINESS_ID.includes('YOUR_'))return;
- const {data,error}=await supabase.from('shipments').select('tracking_number,receiver_name,receiver_phone,origin_branch_id,destination_branch_id,weight_kg,total_price,payment_status,shipment_status,created_at').eq('business_id',BUSINESS_ID).order('created_at',{ascending:false}).limit(100);
- if(error){message(error.message);return}
- $('total').textContent=data.length;$('transit').textContent=data.filter(x=>x.shipment_status==='in_transit').length;$('delivered').textContent=data.filter(x=>x.shipment_status==='delivered').length;
- const {data:payments}=await supabase.from('payments').select('amount').eq('business_id',BUSINESS_ID);
- $('revenue').textContent='ETB '+(payments||[]).reduce((s,p)=>s+Number(p.amount||0),0).toLocaleString();
- $('shipments').innerHTML=data.slice(0,15).map(x=>`<tr><td>${x.tracking_number}</td><td>${x.destination_branch_id||'—'}</td><td><span class="status">${x.shipment_status}</span></td></tr>`).join('');
+$('logoutBtn').onclick=async()=>{await supabase.auth.signOut();currentUser=null;currentBusiness=null;show('appPanel',false);show('businessPanel',false);show('authPanel',true);$('userLabel').textContent='';show('logoutBtn',false);show('loginBtn',true);note('notice','You are signed out.')};
+$('businessForm').onsubmit=async e=>{e.preventDefault();note('businessMessage','Creating company…');const {data,error}=await supabase.rpc('create_my_cargo_business',{p_name:$('businessName').value.trim(),p_phone:$('businessPhone').value.trim()||null,p_address:$('businessAddress').value.trim()||null});
+ if(error){note('businessMessage',error.message,true);return}currentBusiness=data;await openApp()};
+async function initialize(){
+ const {data:{user},error}=await supabase.auth.getUser();if(error||!user){show('authPanel',true);return}
+ currentUser=user;$('userLabel').textContent=user.email||'';show('loginBtn',false);show('logoutBtn',true);show('authPanel',false);
+ const {data:business,error:be}=await supabase.rpc('get_my_cargo_business');
+ if(be){note('notice',be.message,true);return}
+ if(!business){show('businessPanel',true);show('appPanel',false);note('notice','Your account is ready. Create your cargo company to generate its Business UUID.');return}
+ currentBusiness=business;show('businessPanel',false);await openApp();
 }
-$('bookingForm').addEventListener('submit',async e=>{
- e.preventDefault();if(!supabase){message('Supabase setup missing: set project URL and anon/publishable key in index.html.');return}
- if(!BUSINESS_ID||BUSINESS_ID.includes('YOUR_')){message('Set BUSINESS_ID after creating your business and membership.');return}
- const {data:userData}=await supabase.auth.getUser();if(!userData.user){message('Please sign in first.');return}
- const vals={sender:$('sender').value.trim(),senderPhone:$('senderPhone').value.trim(),receiver:$('receiver').value.trim(),receiverPhone:$('receiverPhone').value.trim()};
- // Customers are saved in the same business; sender records are reused by phone.
- let {data:sender,error:senderError}=await supabase.from('customers').select('id').eq('business_id',BUSINESS_ID).eq('phone',vals.senderPhone).maybeSingle();
- if(senderError){message(senderError.message);return}
- if(!sender){const ins=await supabase.from('customers').insert({business_id:BUSINESS_ID,name:vals.sender,phone:vals.senderPhone}).select('id').single();if(ins.error){message(ins.error.message);return}sender=ins.data}
- const tracking=makeTracking();
- const payload={business_id:BUSINESS_ID,tracking_number:tracking,sender_id:sender.id,receiver_name:vals.receiver,receiver_phone:vals.receiverPhone,weight_kg:Number($('weight').value),cargo_description:$('description').value.trim(),total_price:Number($('price').value),created_by:userData.user.id};
- const {data,error}=await supabase.from('shipments').insert(payload).select('id,tracking_number').single();
- if(error){message(error.message);return}
- await supabase.from('shipment_events').insert({business_id:BUSINESS_ID,shipment_id:data.id,status:'booked',notes:'Booking created',created_by:userData.user.id});
- message('Booking saved. Tracking number: '+data.tracking_number);e.target.reset();await refreshData();
-});
-$('trackForm').addEventListener('submit',async e=>{
- e.preventDefault();if(!supabase){$('trackingResult').textContent='Configure Supabase connection first.';return}
- const no=$('trackingNo').value.trim();const {data,error}=await supabase.from('shipments').select('tracking_number,receiver_name,weight_kg,total_price,payment_status,shipment_status,created_at').eq('tracking_number',no).maybeSingle();
- if(error){$('trackingResult').textContent=error.message;return}
- if(!data){$('trackingResult').textContent='No shipment found.';return}
- $('trackingResult').innerHTML=`<div class="notice"><b>${data.tracking_number}</b><br>Status: ${data.shipment_status}<br>Receiver: ${data.receiver_name}<br>Weight: ${data.weight_kg} KG<br>Price: ETB ${data.total_price}<br>Payment: ${data.payment_status}</div>`;
-});
+async function openApp(){show('authPanel',false);show('businessPanel',false);show('appPanel',true);$('companyName').textContent=currentBusiness.name;$('businessIdLabel').textContent='Business UUID: '+currentBusiness.id;note('notice','Connected securely. Your company data is separated by business membership.');await refreshData()}
+async function refreshData(){if(!currentBusiness)return;const bid=currentBusiness.id;
+ const {data,error}=await supabase.from('shipments').select('id,tracking_number,origin_city,destination_city,total_price,shipment_status,created_at').eq('business_id',bid).order('created_at',{ascending:false}).limit(100);
+ if(error){note('message',error.message,true);return}
+ $('total').textContent=data.length;$('transit').textContent=data.filter(x=>x.shipment_status==='in_transit').length;$('delivered').textContent=data.filter(x=>x.shipment_status==='delivered').length;
+ const {data:payments,error:pe}=await supabase.from('payments').select('amount').eq('business_id',bid);if(pe){note('message',pe.message,true);return}
+ $('revenue').textContent=(payments||[]).reduce((s,p)=>s+Number(p.amount||0),0).toLocaleString();
+ $('shipments').innerHTML=data.slice(0,20).map(x=>`<tr><td>${escapeHtml(x.tracking_number)}</td><td>${escapeHtml(x.origin_city)} → ${escapeHtml(x.destination_city)}</td><td><span class="status">${escapeHtml(x.shipment_status)}</span></td><td>${Number(x.total_price).toLocaleString()}</td></tr>`).join('');
+}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('bookingForm').onsubmit=async e=>{e.preventDefault();if(!currentBusiness||!currentUser)return;note('message','Saving booking…');
+ const {data,error}=await supabase.from('shipments').insert({business_id:currentBusiness.id,tracking_number:trackingCode(),sender_name:$('sender').value.trim(),sender_phone:$('senderPhone').value.trim(),receiver_name:$('receiver').value.trim(),receiver_phone:$('receiverPhone').value.trim(),origin_city:$('origin').value.trim(),destination_city:$('destination').value.trim(),weight_kg:Number($('weight').value),cargo_description:$('description').value.trim(),total_price:Number($('price').value),created_by:currentUser.id}).select('id,tracking_number').single();
+ if(error){note('message',error.message,true);return}
+ await supabase.from('shipment_events').insert({business_id:currentBusiness.id,shipment_id:data.id,status:'booked',notes:'Booking created',created_by:currentUser.id});
+ note('message','Booking saved. Tracking number: '+data.tracking_number);e.target.reset();await refreshData();
+};
+$('trackForm').onsubmit=async e=>{e.preventDefault();$('trackingResult').textContent='Searching…';const {data,error}=await supabase.rpc('public_track_cargo',{p_tracking_number:$('trackingNo').value.trim()});
+ if(error){$('trackingResult').textContent=error.message;return}if(!data||!data.length){$('trackingResult').textContent='No shipment found.';return}
+ const x=data[0];$('trackingResult').innerHTML=`<div class="notice"><b>${escapeHtml(x.tracking_number)}</b><br>Route: ${escapeHtml(x.origin_city)} → ${escapeHtml(x.destination_city)}<br>Status: ${escapeHtml(x.shipment_status)}<br>Last update: ${escapeHtml(x.updated_at||'')}</div>`;
+};
 $('refreshBtn').onclick=refreshData;
-if(!configured){$('setupNotice').textContent='Setup needed: replace Supabase URL and anon/publishable key in this file. Then set your business UUID.'}
-setLanguage('en');
+$('language').onchange=e=>{document.documentElement.lang=e.target.value};
+supabase.auth.onAuthStateChange((_event,session)=>{if(session?.user){setTimeout(initialize,0)}});
+setAuthMode(false);initialize();
 </script>
 </body></html>
