@@ -31,7 +31,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
  </div>
 </header>
 <main>
- <div id="notice" class="notice">Connect to your WIZO LAND CARGO account to begin.</div>
+ <div id="notice" class="notice hidden"></div>
  <section id="authPanel" class="panel auth">
   <h2 id="authTitle">Sign in / Create account</h2>
   <form id="authForm" class="formgrid">
@@ -39,7 +39,6 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
    <div><label>Password</label><input id="password" type="password" minlength="8" autocomplete="current-password" required></div>
    <div class="actions"><button id="authSubmit" type="submit">Sign in</button><button id="signupBtn" class="secondary" type="button">Create account</button></div>
   </form>
-  <p class="subtle">Create an account first. Confirm your email if Supabase asks you to.</p>
   <div id="authMessage"></div>
  </section>
  <section id="businessPanel" class="panel auth hidden">
