@@ -39,6 +39,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
    <div><label>Password</label><input id="password" type="password" minlength="8" autocomplete="current-password" required></div>
    <div class="actions"><button id="authSubmit" type="submit">Sign in</button><button id="signupBtn" class="secondary" type="button">Create account</button></div>
   </form>
+
   <div id="authMessage"></div>
  </section>
  <section id="businessPanel" class="panel auth hidden">
@@ -88,27 +89,52 @@ let currentUser=null,currentBusiness=null,signupMode=false;
 function note(id,msg,isError=false){$(id).textContent=msg;$(id).style.color=isError?'#b42318':''}
 function show(id,yes){$(id).classList.toggle('hidden',!yes)}
 function trackingCode(){return 'WZ-'+Date.now().toString().slice(-8)+'-'+crypto.getRandomValues(new Uint32Array(1))[0].toString(36).slice(0,4).toUpperCase()}
-function setAuthMode(signup){signupMode=signup;$('authTitle').textContent=signup?'Create WIZO account':'Sign in to WIZO';$('authSubmit').textContent=signup?'Create account':'Sign in';$('signupBtn').textContent=signup?'Use sign in':'Create account';}
+const translations={
+om:{signin:'Seeni',signup:'Account uumi',signout:'Ba’i',signintitle:'WIZO seeni',signupTitle:'Account WIZO uumi',email:'Imeelii',password:'Jecha iccitii',businessTitle:'Dhaabbata fe’umsaa kee uumi',businessName:'Maqaa dhaabbataa',phone:'Bilbila',address:'Teessoo',createCompany:'Dhaabbata uumiitii itti fufi',refresh:'Dashboard haaromsi',total:'Fe’umsawwan waliigalaa',transit:'Imala irra',delivered:'Geessame',payments:'Kaffaltii galmaa’e (ETB)',booking:'Fe’umsaa haaraa galmeessi',sender:'Maqaa ergaa',senderPhone:'Bilbila ergaa',receiver:'Maqaa fudhataa',receiverPhone:'Bilbila fudhataa',origin:'Magaalaa ka’umsaa',destination:'Magaalaa gahumsaa',weight:'Ulfina (KG)',price:'Gatii (ETB)',description:'Ibsa fe’umsaa',save:'Galmeessi',track:'Fe’umsaa hordofi',trackingNo:'Lakkoofsa hordoffii',recent:'Fe’umsawwan dhiheenya',route:'Daandii',status:'Haala',company:'Dhaabbata',searching:'Barbaadaa jira…',saving:'Galmeessaa jira…',creating:'Dhaabbata uumaa jira…',created:'Account uumame. Email kee mirkaneessi, achiis seeni.',noShipment:'Fe’umsaan hin argamne.',bookingSaved:'Fe’umsaan galmaa’e. Lakkoofsa hordoffii:',connected:'Walqabateera. Odeeffannoon dhaabbata kee adda baafamee eegama.',ready:'Account kee qophaa’eera. UUID dhaabbata uumuuf dhaabbata fe’umsaa kee uumi.',signedout:'Baateetta.',working:'Hojjechaa jira…',confirm:'Yoo email mirkaneessuun si gaafate, mirkaneessi.'},
+en:{signin:'Sign in',signup:'Create account',signout:'Sign out',signintitle:'Sign in to WIZO',signupTitle:'Create WIZO account',email:'Email',password:'Password',businessTitle:'Create your cargo company',businessName:'Business / company name',phone:'Phone',address:'Address',createCompany:'Create company and continue',refresh:'Refresh dashboard',total:'Total Shipments',transit:'In Transit',delivered:'Delivered',payments:'Recorded Payments (ETB)',booking:'New Cargo Booking',sender:'Sender name',senderPhone:'Sender phone',receiver:'Receiver name',receiverPhone:'Receiver phone',origin:'Origin city',destination:'Destination city',weight:'Weight (KG)',price:'Price (ETB)',description:'Cargo description',save:'Save booking',track:'Track Cargo',trackingNo:'Tracking number',recent:'Recent Shipments',route:'Route',status:'Status',company:'Company',searching:'Searching…',saving:'Saving booking…',creating:'Creating company…',created:'Account created. Check your email to confirm, then sign in.',noShipment:'No shipment found.',bookingSaved:'Booking saved. Tracking number:',connected:'Connected securely. Your company data is separated by business membership.',ready:'Your account is ready. Create your cargo company to generate its Business UUID.',signedout:'You are signed out.',working:'Working…',confirm:'Confirm your email if Supabase asks you to.'},
+am:{signin:'ግባ',signup:'መለያ ፍጠር',signout:'ውጣ',signintitle:'ወደ WIZO ግባ',signupTitle:'WIZO መለያ ፍጠር',email:'ኢሜይል',password:'የይለፍ ቃል',businessTitle:'የጭነት ድርጅትዎን ይፍጠሩ',businessName:'የድርጅት ስም',phone:'ስልክ',address:'አድራሻ',createCompany:'ድርጅት ፍጠር እና ቀጥል',refresh:'ዳሽቦርድ አድስ',total:'ጠቅላላ ጭነቶች',transit:'በመጓጓዣ ላይ',delivered:'ደርሷል',payments:'የተመዘገቡ ክፍያዎች (ETB)',booking:'አዲስ ጭነት መመዝገብ',sender:'የላኪ ስም',senderPhone:'የላኪ ስልክ',receiver:'የተቀባይ ስም',receiverPhone:'የተቀባይ ስልክ',origin:'መነሻ ከተማ',destination:'መድረሻ ከተማ',weight:'ክብደት (KG)',price:'ዋጋ (ETB)',description:'የጭነት መግለጫ',save:'ጭነት አስቀምጥ',track:'ጭነት ክትትል',trackingNo:'የክትትል ቁጥር',recent:'የቅርብ ጭነቶች',route:'መንገድ',status:'ሁኔታ',company:'ድርጅት',searching:'በመፈለግ ላይ…',saving:'በማስቀመጥ ላይ…',creating:'ድርጅት በመፍጠር ላይ…',created:'መለያ ተፈጥሯል። ኢሜይልዎን ያረጋግጡና ይግቡ።',noShipment:'ጭነት አልተገኘም።',bookingSaved:'ጭነት ተመዝግቧል። የክትትል ቁጥር:',connected:'በደህና ተገናኝቷል።',ready:'መለያዎ ዝግጁ ነው። የጭነት ድርጅትዎን ይፍጠሩ።',signedout:'ወጥተዋል።',working:'በመስራት ላይ…',confirm:'ከተጠየቁ ኢሜይልዎን ያረጋግጡ።'}
+};
+let lang='om';
+function applyLanguage(){
+ const t=translations[lang]||translations.om;document.documentElement.lang=lang;
+ $('loginBtn').textContent=t.signin;$('logoutBtn').textContent=t.signout;
+ $('authTitle').textContent=signupMode?t.signupTitle:t.signintitle;
+ $('authSubmit').textContent=signupMode?t.signup:t.signin;$('signupBtn').textContent=signupMode?t.signin:t.signup;
+ document.querySelector('#authForm label:nth-of-type(1)').textContent=t.email;
+ document.querySelector('#authForm label:nth-of-type(2)').textContent=t.password;
+ $('businessPanel').querySelector('h2').textContent=t.businessTitle;
+ const bl=$('businessForm').querySelectorAll('label');bl[0].textContent=t.businessName;bl[1].textContent=t.phone;bl[2].textContent=t.address;
+ $('businessForm').querySelector('button').textContent=t.createCompany;
+ $('refreshBtn').textContent=t.refresh;
+ const metricLabels=document.querySelectorAll('.cards .muted');metricLabels[0].textContent=t.total;metricLabels[1].textContent=t.transit;metricLabels[2].textContent=t.delivered;metricLabels[3].textContent=t.payments;
+ const panels=document.querySelectorAll('#appPanel .grid .panel');panels[0].querySelector('h2').textContent=t.booking;panels[1].querySelector('h2').textContent=t.track;
+ const labels=panels[0].querySelectorAll('label');[t.sender,t.senderPhone,t.receiver,t.receiverPhone,t.origin,t.destination,t.weight,t.price,t.description].forEach((v,i)=>labels[i].textContent=v);
+ panels[0].querySelector('button').textContent=t.save;
+ panels[1].querySelector('label').textContent=t.trackingNo;panels[1].querySelector('button').textContent=t.track;
+ panels[1].querySelectorAll('h2')[1].textContent=t.recent;
+ const th=panels[1].querySelectorAll('th');th[0].textContent='Tracking';th[1].textContent=t.route;th[2].textContent=t.status;th[3].textContent=t.price;
+}
+function setAuthMode(signup){signupMode=signup;applyLanguage();}
 $('signupBtn').onclick=()=>setAuthMode(!signupMode);
 $('loginBtn').onclick=()=>{show('authPanel',true);$('email').focus()};
-$('authForm').onsubmit=async e=>{e.preventDefault();note('authMessage','Working…');const email=$('email').value.trim(),password=$('password').value;
+$('authForm').onsubmit=async e=>{e.preventDefault();note('authMessage',translations[lang].working);const email=$('email').value.trim(),password=$('password').value;
  let result=signupMode?await supabase.auth.signUp({email,password}):await supabase.auth.signInWithPassword({email,password});
  if(result.error){note('authMessage',result.error.message,true);return}
- if(signupMode&&!result.data.session){note('authMessage','Account created. Check your email to confirm, then sign in.');return}
+ if(signupMode&&!result.data.session){note('authMessage',translations[lang].created);return}
  await initialize();
 };
-$('logoutBtn').onclick=async()=>{await supabase.auth.signOut();currentUser=null;currentBusiness=null;show('appPanel',false);show('businessPanel',false);show('authPanel',true);$('userLabel').textContent='';show('logoutBtn',false);show('loginBtn',true);note('notice','You are signed out.')};
-$('businessForm').onsubmit=async e=>{e.preventDefault();note('businessMessage','Creating company…');const {data,error}=await supabase.rpc('create_my_cargo_business',{p_name:$('businessName').value.trim(),p_phone:$('businessPhone').value.trim()||null,p_address:$('businessAddress').value.trim()||null});
+$('logoutBtn').onclick=async()=>{await supabase.auth.signOut();currentUser=null;currentBusiness=null;show('appPanel',false);show('businessPanel',false);show('authPanel',true);$('userLabel').textContent='';show('logoutBtn',false);show('loginBtn',true);note('notice',translations[lang].signedout)};
+$('businessForm').onsubmit=async e=>{e.preventDefault();note('businessMessage',translations[lang].creating);const {data,error}=await supabase.rpc('create_my_cargo_business',{p_name:$('businessName').value.trim(),p_phone:$('businessPhone').value.trim()||null,p_address:$('businessAddress').value.trim()||null});
  if(error){note('businessMessage',error.message,true);return}currentBusiness=data;await openApp()};
 async function initialize(){
  const {data:{user},error}=await supabase.auth.getUser();if(error||!user){show('authPanel',true);return}
  currentUser=user;$('userLabel').textContent=user.email||'';show('loginBtn',false);show('logoutBtn',true);show('authPanel',false);
  const {data:business,error:be}=await supabase.rpc('get_my_cargo_business');
  if(be){note('notice',be.message,true);return}
- if(!business){show('businessPanel',true);show('appPanel',false);note('notice','Your account is ready. Create your cargo company to generate its Business UUID.');return}
+ if(!business){show('businessPanel',true);show('appPanel',false);note('notice',translations[lang].ready);return}
  currentBusiness=business;show('businessPanel',false);await openApp();
 }
-async function openApp(){show('authPanel',false);show('businessPanel',false);show('appPanel',true);$('companyName').textContent=currentBusiness.name;$('businessIdLabel').textContent='Business UUID: '+currentBusiness.id;note('notice','Connected securely. Your company data is separated by business membership.');await refreshData()}
+async function openApp(){show('authPanel',false);show('businessPanel',false);show('appPanel',true);$('companyName').textContent=currentBusiness.name;$('businessIdLabel').textContent='Business UUID: '+currentBusiness.id;note('notice',translations[lang].connected);await refreshData()}
 async function refreshData(){if(!currentBusiness)return;const bid=currentBusiness.id;
  const {data,error}=await supabase.from('shipments').select('id,tracking_number,origin_city,destination_city,total_price,shipment_status,created_at').eq('business_id',bid).order('created_at',{ascending:false}).limit(100);
  if(error){note('message',error.message,true);return}
@@ -118,19 +144,19 @@ async function refreshData(){if(!currentBusiness)return;const bid=currentBusines
  $('shipments').innerHTML=data.slice(0,20).map(x=>`<tr><td>${escapeHtml(x.tracking_number)}</td><td>${escapeHtml(x.origin_city)} → ${escapeHtml(x.destination_city)}</td><td><span class="status">${escapeHtml(x.shipment_status)}</span></td><td>${Number(x.total_price).toLocaleString()}</td></tr>`).join('');
 }
 function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-$('bookingForm').onsubmit=async e=>{e.preventDefault();if(!currentBusiness||!currentUser)return;note('message','Saving booking…');
+$('bookingForm').onsubmit=async e=>{e.preventDefault();if(!currentBusiness||!currentUser)return;note('message',translations[lang].saving);
  const {data,error}=await supabase.from('shipments').insert({business_id:currentBusiness.id,tracking_number:trackingCode(),sender_name:$('sender').value.trim(),sender_phone:$('senderPhone').value.trim(),receiver_name:$('receiver').value.trim(),receiver_phone:$('receiverPhone').value.trim(),origin_city:$('origin').value.trim(),destination_city:$('destination').value.trim(),weight_kg:Number($('weight').value),cargo_description:$('description').value.trim(),total_price:Number($('price').value),created_by:currentUser.id}).select('id,tracking_number').single();
  if(error){note('message',error.message,true);return}
  await supabase.from('shipment_events').insert({business_id:currentBusiness.id,shipment_id:data.id,status:'booked',notes:'Booking created',created_by:currentUser.id});
- note('message','Booking saved. Tracking number: '+data.tracking_number);e.target.reset();await refreshData();
+ note('message',translations[lang].bookingSaved+' '+data.tracking_number);e.target.reset();await refreshData();
 };
-$('trackForm').onsubmit=async e=>{e.preventDefault();$('trackingResult').textContent='Searching…';const {data,error}=await supabase.rpc('public_track_cargo',{p_tracking_number:$('trackingNo').value.trim()});
- if(error){$('trackingResult').textContent=error.message;return}if(!data||!data.length){$('trackingResult').textContent='No shipment found.';return}
+$('trackForm').onsubmit=async e=>{e.preventDefault();$('trackingResult').textContent=translations[lang].searching;const {data,error}=await supabase.rpc('public_track_cargo',{p_tracking_number:$('trackingNo').value.trim()});
+ if(error){$('trackingResult').textContent=error.message;return}if(!data||!data.length){$('trackingResult').textContent=translations[lang].noShipment;return}
  const x=data[0];$('trackingResult').innerHTML=`<div class="notice"><b>${escapeHtml(x.tracking_number)}</b><br>Route: ${escapeHtml(x.origin_city)} → ${escapeHtml(x.destination_city)}<br>Status: ${escapeHtml(x.shipment_status)}<br>Last update: ${escapeHtml(x.updated_at||'')}</div>`;
 };
 $('refreshBtn').onclick=refreshData;
-$('language').onchange=e=>{document.documentElement.lang=e.target.value};
+$('language').onchange=e=>{lang=e.target.value;applyLanguage()};
 supabase.auth.onAuthStateChange((_event,session)=>{if(session?.user){setTimeout(initialize,0)}});
-setAuthMode(false);initialize();
+lang=$('language').value;applyLanguage();setAuthMode(false);initialize();
 </script>
 </body></html>
